@@ -1,21 +1,26 @@
 package fileserver
 
 import (
+	"file-server/config"
 	"fmt"
 	"io"
+	"log"
+	"net/http"
 	"os"
 
 	"github.com/labstack/echo/v4"
 )
 
 const (
-	API_KEY       = ""
+	// 	API_KEY       = "xl61Lfdm6n014u1gn2p8CLBc0P9WFz02f5BcBolvl0k="
 	MAX_FILE_SIZE = 3 * 1024 * 1024
-	PORT          = 4500
+
+// PORT          = 4500
 )
 
 type FileServer struct {
-	Echo *echo.Echo
+	Echo   *echo.Echo
+	Config *config.AppConfig
 }
 
 func (f *FileServer) InitRoutes() {
@@ -24,15 +29,13 @@ func (f *FileServer) InitRoutes() {
 }
 
 func (f *FileServer) Start() error {
-	return f.Echo.Start(fmt.Sprintf(":%d", PORT))
+	return f.Echo.Start(fmt.Sprintf(":%d", config.GlobalAppConfig.Port))
 }
 
 func receiveFiles(c echo.Context) error {
-	apiKey := c.Request().Header.Get("API_KEY")
-
-	if apiKey != API_KEY {
+	if !authorizeUserWithNextAuthServer(&c) {
 		return c.JSON(401, ErrorResponse{
-			Error: "Invalid API key.",
+			Error: "Could not find session associated with current request.",
 		})
 	}
 
@@ -95,4 +98,32 @@ func getFile(c echo.Context) error {
 
 type ErrorResponse struct {
 	Error string
+}
+
+func authorizeUserWithNextAuthServer(c *echo.Context) bool {
+	ct := *c
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", config.GlobalAppConfig.AuthServerUrl, nil)
+	req.Header = ct.Request().Header
+
+	for _, cookie := range ct.Request().Cookies() {
+		req.AddCookie(cookie)
+	}
+
+	resp, err := client.Do(req)
+
+	if err != nil || resp.StatusCode != 200 {
+		return false
+	}
+
+	bodyContent, _ := io.ReadAll(resp.Body)
+
+	if string(bodyContent) == "{}" {
+		return false
+	}
+
+	log.Println(string(bodyContent))
+
+	return true
 }
