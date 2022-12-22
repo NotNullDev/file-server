@@ -8,6 +8,21 @@ import (
 )
 
 func main() {
+
+	envs, err := config.ParseEnvFiles(true, ".env")
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	for key, val := range envs {
+		println(key + "=" + val)
+	}
+
+	if 1 == 1 {
+		return
+	}
+
 	e := echo.New()
 
 	config, err := config.NewAppConfigFromEnv()
