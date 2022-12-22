@@ -1,1 +1,4 @@
 files
+*debug*
+_*
+cmd/__debug_bin

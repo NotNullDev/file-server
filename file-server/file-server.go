@@ -149,6 +149,6 @@ func authorizeUserWithNextAuthServer(c *echo.Context) bool {
 }
 
 type TempFileMapping struct {
-	OriginalFileName string
-	NewFileName      string
+	OriginalFileName string `json:"originalFileName"`
+	NewFileName      string `json:"newFileName"`
 }
