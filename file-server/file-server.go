@@ -7,15 +7,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 const (
-	// 	API_KEY       = "xl61Lfdm6n014u1gn2p8CLBc0P9WFz02f5BcBolvl0k="
 	MAX_FILE_SIZE = 3 * 1024 * 1024
-
-// PORT          = 4500
+	FILES_FOLDER  = "files"
 )
 
 type FileServer struct {
@@ -29,6 +29,15 @@ func (f *FileServer) InitRoutes() {
 }
 
 func (f *FileServer) Start() error {
+	os.Mkdir(FILES_FOLDER, 0777)
+
+	f.Echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{"*"},
+		AllowCredentials: true,
+		AllowMethods:     []string{"*"},
+		AllowHeaders:     []string{"*"},
+	}))
+
 	return f.Echo.Start(fmt.Sprintf(":%d", config.GlobalAppConfig.Port))
 }
 
@@ -49,6 +58,8 @@ func receiveFiles(c echo.Context) error {
 
 	files := form.File["files"]
 
+	var tempFileNamesMapping []TempFileMapping
+
 	for _, file := range files {
 		// TODO: add saved files rollback in array.
 		if file.Size > MAX_FILE_SIZE {
@@ -66,12 +77,21 @@ func receiveFiles(c echo.Context) error {
 		}
 		defer dataStream.Close()
 
-		newFile, err := os.Create(file.Filename)
+		newFile, err := os.CreateTemp(FILES_FOLDER, "*")
 
 		if err != nil {
 			return c.JSON(400, ErrorResponse{
 				Error: "Unknown error.",
 			})
+		}
+
+		tempFileNamesMapping = append(tempFileNamesMapping, TempFileMapping{
+			OriginalFileName: file.Filename,
+			NewFileName:      newFile.Name(),
+		})
+
+		if err != nil {
+			panic(err.Error())
 		}
 
 		_, err = io.Copy(newFile, dataStream)
@@ -83,7 +103,7 @@ func receiveFiles(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(200, len(files))
+	return c.JSON(200, tempFileNamesMapping)
 }
 
 func getFile(c echo.Context) error {
@@ -93,7 +113,7 @@ func getFile(c echo.Context) error {
 			Error: "missing filename",
 		})
 	}
-	return c.File(fileName)
+	return c.File(path.Join(FILES_FOLDER, fileName))
 }
 
 type ErrorResponse struct {
@@ -126,4 +146,9 @@ func authorizeUserWithNextAuthServer(c *echo.Context) bool {
 	log.Println(string(bodyContent))
 
 	return true
+}
+
+type TempFileMapping struct {
+	OriginalFileName string
+	NewFileName      string
 }
