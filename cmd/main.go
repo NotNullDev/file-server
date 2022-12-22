@@ -9,7 +9,7 @@ import (
 
 func main() {
 
-	envs, err := config.ParseEnvFiles(true, ".env")
+	envs, err := config.ParseEnvFiles(false, ".env")
 
 	if err != nil {
 		panic(err.Error())
@@ -17,10 +17,6 @@ func main() {
 
 	for key, val := range envs {
 		println(key + "=" + val)
-	}
-
-	if 1 == 1 {
-		return
 	}
 
 	e := echo.New()

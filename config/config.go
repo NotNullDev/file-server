@@ -11,8 +11,11 @@ import (
 )
 
 var GlobalAppConfig = &AppConfig{}
+var EnvFromFileMap map[string]string
 
 func init() {
+	// env, err := ParseEnvFiles(false, ".env")
+
 	c, err := NewAppConfigFromEnv()
 
 	if err != nil {
@@ -20,6 +23,7 @@ func init() {
 	}
 
 	GlobalAppConfig = &c
+	// EnvFromFileMap = env
 }
 
 type AppConfig struct {
@@ -29,13 +33,25 @@ type AppConfig struct {
 }
 
 func NewAppConfigFromEnv() (AppConfig, error) {
-	port, err := strconv.Atoi(os.Getenv("SERVER_PORT"))
-	maxFileSize, err := strconv.ParseInt(os.Getenv("MAX_FILE_SIZE"), 10, 64)
-	authServerUrl := os.Getenv("AUTH_SERVER_URL")
+	env, err := ParseEnvFiles(false, ".env")
 
 	if err != nil {
 		return AppConfig{}, nil
 	}
+
+	port, err := strconv.Atoi(env["SERVER_PORT"])
+
+	if err != nil {
+		return AppConfig{}, nil
+	}
+
+	maxFileSize, err := strconv.ParseInt(env["MAX_FILE_SIZE"], 10, 64)
+
+	if err != nil {
+		return AppConfig{}, nil
+	}
+
+	authServerUrl := env["AUTH_SERVER_URL"]
 
 	if !areEnvValid(authServerUrl) {
 		return AppConfig{}, nil
@@ -61,17 +77,17 @@ func areEnvValid(envs ...string) bool {
 	return true
 }
 
-func ParseEnvFiles(ignoreOnNonExistingEnvFile bool, envFilePath ...string) (map[string]string, error) {
+func ParseEnvFiles(failOnMissingEnvFile bool, envFilePath ...string) (map[string]string, error) {
 	var result map[string]string = make(map[string]string)
 
 	for _, filePath := range envFilePath {
 		file, err := os.Open(filePath)
 
 		if err != nil {
-			if ignoreOnNonExistingEnvFile {
-				continue
+			if failOnMissingEnvFile {
+				return nil, err
 			}
-			return nil, err
+			continue
 		}
 
 		scanner := bufio.NewScanner(file)

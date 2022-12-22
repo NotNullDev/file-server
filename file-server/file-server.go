@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -87,7 +88,7 @@ func receiveFiles(c echo.Context) error {
 
 		tempFileNamesMapping = append(tempFileNamesMapping, TempFileMapping{
 			OriginalFileName: file.Filename,
-			NewFileName:      newFile.Name(),
+			NewFileName:      filepath.Base(newFile.Name()),
 		})
 
 		if err != nil {
@@ -103,6 +104,8 @@ func receiveFiles(c echo.Context) error {
 		}
 	}
 
+	println(tempFileNamesMapping)
+
 	return c.JSON(200, tempFileNamesMapping)
 }
 
@@ -113,11 +116,13 @@ func getFile(c echo.Context) error {
 			Error: "missing filename",
 		})
 	}
+	println(os.Getwd())
+	println(fileName)
 	return c.File(path.Join(FILES_FOLDER, fileName))
 }
 
 type ErrorResponse struct {
-	Error string
+	Error string `json:"error"`
 }
 
 func authorizeUserWithNextAuthServer(c *echo.Context) bool {
