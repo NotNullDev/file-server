@@ -1,0 +1,1 @@
+caprover deploy -c deploy/caprover.yml

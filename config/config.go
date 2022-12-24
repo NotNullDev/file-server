@@ -33,7 +33,7 @@ type AppConfig struct {
 }
 
 func NewAppConfigFromEnv() (AppConfig, error) {
-	env, err := ParseEnvFiles(false, ".env")
+	env, err := ParseEnvFiles(false, true, ".env")
 
 	if err != nil {
 		return AppConfig{}, nil
@@ -77,7 +77,7 @@ func areEnvValid(envs ...string) bool {
 	return true
 }
 
-func ParseEnvFiles(failOnMissingEnvFile bool, envFilePath ...string) (map[string]string, error) {
+func ParseEnvFiles(failOnMissingEnvFile bool, prioritizeEnv bool, envFilePath ...string) (map[string]string, error) {
 	var result map[string]string = make(map[string]string)
 
 	for _, filePath := range envFilePath {
@@ -135,7 +135,14 @@ func ParseEnvFiles(failOnMissingEnvFile bool, envFilePath ...string) (map[string
 			}
 
 			if envVal == "" {
-				return nil, fmt.Errorf("value at line %d is empty in file [%s]", lineNumber, filePath)
+				envVal = os.Getenv(envKey)
+				if envVal == "" {
+					return nil, fmt.Errorf("value at line %d is empty in file [%s]", lineNumber, filePath)
+				}
+			}
+
+			if v := os.Getenv(envKey); prioritizeEnv && v != "" {
+				envVal = v
 			}
 
 			result[envKey] = envVal
