@@ -132,7 +132,9 @@ func authorizeUserWithNextAuthServer(c *echo.Context) bool {
 	req, _ := http.NewRequest("GET", config.GlobalAppConfig.AuthServerUrl, nil)
 	req.Header = ct.Request().Header
 
-	for _, cookie := range ct.Request().Cookies() {
+	cookies := ct.Request().Cookies()
+
+	for _, cookie := range cookies {
 		req.AddCookie(cookie)
 	}
 
@@ -146,9 +148,11 @@ func authorizeUserWithNextAuthServer(c *echo.Context) bool {
 
 	if string(bodyContent) == "{}" {
 		log.Panicln("Unauthorized! Cookies: ")
-		for _, cookie := range ct.Request().Cookies() {
-			println(cookie)
+
+		for _, cookie := range cookies {
+			println(cookie.Name + ": " + cookie.Value)
 		}
+
 		return false
 	}
 
