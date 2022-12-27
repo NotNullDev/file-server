@@ -147,7 +147,7 @@ func authorizeUserWithNextAuthServer(c *echo.Context) bool {
 	bodyContent, _ := io.ReadAll(resp.Body)
 
 	if string(bodyContent) == "{}" {
-		log.Panicln("Unauthorized! Cookies: ")
+		log.Printf("Unauthorized! Cookies: ")
 
 		for _, cookie := range cookies {
 			println(cookie.Name + ": " + cookie.Value)
