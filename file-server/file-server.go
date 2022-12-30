@@ -1,6 +1,7 @@
 package fileserver
 
 import (
+	_ "embed"
 	"file-server/config"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -18,6 +20,9 @@ const (
 	MAX_FILE_SIZE = 3 * 1024 * 1024
 	FILES_FOLDER  = "files"
 )
+
+//go:embed private-public.pem
+var cert []byte
 
 type FileServer struct {
 	Echo   *echo.Echo
@@ -43,11 +48,12 @@ func (f *FileServer) Start() error {
 }
 
 func receiveFiles(c echo.Context) error {
-	if !authorizeUserWithNextAuthServer(&c) {
-		return c.JSON(401, ErrorResponse{
-			Error: "Could not find session associated with current request.",
-		})
-	}
+	println(fmt.Sprintf("Cert: [%s]", cert))
+	// if !authorizeUserWithNextAuthServer(&c) {
+	// 	return c.JSON(401, ErrorResponse{
+	// 		Error: "Could not find session associated with current request.",
+	// 	})
+	// }
 
 	form, err := c.MultipartForm()
 
@@ -58,6 +64,26 @@ func receiveFiles(c echo.Context) error {
 	}
 
 	files := form.File["files"]
+
+	secretData := form.Value["secret-data"][0]
+	var claimsMap jwt.MapClaims
+	p, err := jwt.ParseWithClaims(secretData, &claimsMap, func(t *jwt.Token) (interface{}, error) {
+		key, err := jwt.ParseRSAPublicKeyFromPEM(cert)
+		if err != nil {
+			return nil, err
+		}
+
+		return key, nil
+	})
+
+	if err != nil {
+		println(err.Error())
+		return err
+	}
+
+	if !p.Valid {
+		return fmt.Errorf("message verification failed")
+	}
 
 	var tempFileNamesMapping []TempFileMapping
 

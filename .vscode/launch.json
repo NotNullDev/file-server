@@ -10,7 +10,11 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/main.go",
-      "envFile": "${workspaceFolder}/.env"
+      "envFile": "${workspaceFolder}/.env",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "SERVER_PORT": "4500"
+      }
     }
   ]
 }
